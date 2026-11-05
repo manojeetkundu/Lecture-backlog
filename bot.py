@@ -50,7 +50,7 @@ GET_VIDEO, GET_SUBJECT = range(2)
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🎥 Naya lecture add karne ke liye apni video file bhejiye, aur video ke caption mein lecture ka title likh dijiye!\n\n"
-        "💡 Cancel karne ke liye /cancel bhejiye"
+        "💡 Radd karne ke liye /cancel bhejiye"
     )
     return GET_VIDEO
 
@@ -86,7 +86,7 @@ async def get_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     
     await update.message.reply_text(
-        f"✅ Lecture successfully save ho gaya!\n\n"
+        f"✅ Lecture safalpurvak save ho gaya!\n\n"
         f"📌 Title: {title}\n"
         f"📖 Subject: {subject}"
     )
@@ -101,8 +101,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("➕ Naya Lecture Jodein", callback_data="menu_add")],
-        [InlineKeyboardButton("📊 Backlog Status Dekhein", callback_data="menu_suggest")],
-        [InlineKeyboardButton("🎯 Agla Lecture Dekhein", callback_data="menu_status")]
+        [InlineKeyboardButton("🎯 Agla Lecture Dekhein", callback_data="menu_suggest")],
+        [InlineKeyboardButton("📊 Backlog Status Dekhein", callback_data="menu_status")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
