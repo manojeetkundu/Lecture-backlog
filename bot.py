@@ -44,38 +44,34 @@ def init_db():
 init_db()
 
 
-# --- 3. Conversation States ---
-TITLE, VIDEO_FILE, SUBJECT = range(3)
+# --- 3. Conversation States (Sirf 2 steps: Video+Caption aur Subject) ---
+GET_VIDEO, GET_SUBJECT = range(2)
 
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📚 Naya lecture add karne ke liye sabse pehle lecture ka Title bhejiye:\n"
-        "(Jaise: Chapter 1 Introduction)\n\n"
+        "🎥 Naya lecture add karne ke liye apni **video file bhejiye**, aur video ke **caption mein lecture ka title** likh dijiye!\n\n"
         "💡 Radd karne ke liye /cancel bhejiye"
     )
-    return TITLE
-
-async def get_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['title'] = update.message.text
-    await update.message.reply_text(
-        "🎥 Video File\n\n"
-        "Ab is lecture ki video file (video message) bhejiye:\n"
-        "(Agar video nahi hai toh 'none' likh kar bhej sakte hain)"
-    )
-    return VIDEO_FILE
+    return GET_VIDEO
 
 async def get_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.video:
         context.user_data['file_id'] = update.message.video.file_id
+        # Video ke caption ko hi title bana lenge
+        if update.message.caption:
+            context.user_data['title'] = update.message.caption
+        else:
+            context.user_data['title'] = "Untitled Lecture"
     else:
+        # Agar user ne video ki jagah text bhej diya ho
         context.user_data['file_id'] = "none"
+        context.user_data['title'] = update.message.text
         
     await update.message.reply_text(
-        "📂 Subject\n\n"
-        "Ab bataiye ki yeh lecture kis Subject ka hai?\n"
+        "📂 Ab bataiye ki yeh lecture kis Subject ka hai?\n"
         "(Jaise: Maths, Physics)"
     )
-    return SUBJECT
+    return GET_SUBJECT
 
 async def get_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     subject = update.message.text.strip()
@@ -187,7 +183,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute('UPDATE lectures SET completed = 1 WHERE id = ?', (lecture_id,))
         conn.commit()
         conn.close()
-        await query.edit_message_text(f"🎉 Shabash! Lecture ID {lecture_id} complete ho gaya hai! Agla lecture dekhne ke liye /suggest use kijiye.")
+        
+        # Check karenge ki message video hai ya text, uske hisaab se edit karenge
+        try:
+            if query.message.video:
+                await query.edit_message_caption(caption=f"🎉 Shabash! Lecture ID {lecture_id} complete ho gaya hai! ✅")
+            else:
+                await query.edit_message_text(text=f"🎉 Shabash! Lecture ID {lecture_id} complete ho gaya hai! ✅")
+        except Exception:
+            await query.message.reply_text(f"🎉 Shabash! Lecture ID {lecture_id} complete ho gaya hai! ✅")
 
 async def status_action(query):
     conn = sqlite3.connect('lecture_backlog.db')
@@ -253,9 +257,8 @@ def main():
     add_handler = ConversationHandler(
         entry_points=[CommandHandler('add', start_add)],
         states={
-            TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_title)],
-            VIDEO_FILE: [MessageHandler(filters.VIDEO | filters.TEXT & ~filters.COMMAND, get_video)],
-            SUBJECT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_subject)],
+            GET_VIDEO: [MessageHandler(filters.VIDEO | filters.TEXT & ~filters.COMMAND, get_video)],
+            GET_SUBJECT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_subject)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
