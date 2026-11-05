@@ -45,54 +45,55 @@ init_db()
 
 
 # --- 3. Conversation States ---
-TITLE, URL, SUBJECT = range(3)
+TITLE, VIDEO, SUBJECT = range(3)
 
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📚 **Naya Lecture Jod rahe hain**\n\n"
-        "Sabse pehle lecture ka **Title** bhejiye:\n"
-        "*(Jaise: Chapter 1 Introduction)*\n\n"
-        "💡 *Radd karne ke liye `/cancel` bhejiye*"
+        "📚 Naya Lecture Jod rahe hain\n\n"
+        "Sabse pehle lecture ka Title bhejiye:\n"
+        "(Jaise: Chapter 1 Introduction)\n\n"
+        "💡 Cancel karne ke liye /cancel bhejiye"
     )
     return TITLE
 
 async def get_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['title'] = update.message.text
     await update.message.reply_text(
-        "🔗 **Video Link**\n\n"
-        "Ab is lecture ka video link ya URL bhejiye:\n"
-        "*(Agar link nahi hai toh `none` likh dijiye)*"
+        "🎥 Video\n\n"
+        "Ab is lecture ka video bhejiye:\n"
+        "(Agar video nahi hai toh none likh dijiye)"
     )
-    return URL
+    return VIDEO
 
-async def get_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['url'] = update.message.text.strip()
+async def get_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['video'] = update.message.text.strip()
     await update.message.reply_text(
-        "📂 **Subject Name**\n\n"
+        "📂 Subject Name\n\n"
         "Yeh lecture kis subject ka hai?\n"
-        "*(Jaise: Maths, Physics)*"
+        "(Jaise: Maths, Physics)"
     )
     return SUBJECT
 
 async def get_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     subject = update.message.text.strip()
     title = context.user_data['title']
-    url = context.user_data['url']
+    video = context.user_data['video']
     
     conn = sqlite3.connect('lecture_backlog.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO lectures (title, subject, url, completed)
+        INSERT INTO lectures (title, subject, video, completed)
         VALUES (?, ?, ?, 0)
     ''', (title, subject, url))
     conn.commit()
     conn.close()
     
     await update.message.reply_text(
-        f"✅ **Lecture Safalpurvak Save Ho Gaya!**\n\n"
+        f"✅ Lecture Safalpurvak Save Ho Gaya!\n\n"
         f"📖 Title: {title}\n"
         f"📂 Subject: {subject}\n"
-        f"🔗 Link: {url}"
+        f"🎥 Video: {video}"
+        f"🆔 ID: {lecture_id}"
     )
     return ConversationHandler.END
 
@@ -111,8 +112,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "👋 **Namaste!** Main aapka personal **Lecture Backlog Bot** hoon.\n\n"
-        "Apne lectures ko asani se track karne ke liye niche diye gaye buttons ka use kijiye ✨",
+        "👋 Namaste! Main aapka personal Lecture Backlog Bot hoon.\n\n"
+        "Apne lectures ko asani se track karne ke liye niche ddiyegaye buttons ka use kijiye ✨",
         reply_markup=reply_markup
     )
 
@@ -120,7 +121,7 @@ async def suggest_cmd(update_or_query, context):
     conn = sqlite3.connect('lecture_backlog.db')
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT id, title, subject, url 
+        SELECT id, title, subject, video 
         FROM lectures 
         WHERE completed = 0 
         ORDER BY id ASC 
@@ -132,11 +133,11 @@ async def suggest_cmd(update_or_query, context):
     message_obj = update_or_query.message if hasattr(update_or_query, 'message') else update_or_query.effective_message
 
     if lecture:
-        lecture_id, title, subject, url = lecture
+        lecture_id, title, subject, video = lecture
         
         keyboard = []
-        if url and url.lower() != 'none':
-            keyboard.append([InlineKeyboardButton("▶️ Lecture Video Dekhein", url=url)])
+        if video and video.lower() != 'none':
+            keyboard.append([InlineKeyboardButton("▶️ Lecture Video Dekhein", video=video)])
         
         keyboard.append([InlineKeyboardButton("🎉 Ho Gaya (Done)", callback_data=f"done_{lecture_id}")])
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -149,7 +150,7 @@ async def suggest_cmd(update_or_query, context):
         )
         await message_obj.reply_text(msg, reply_markup=reply_markup, parse_mode='Markdown')
     else:
-        await message_obj.reply_text("🎉 **Badhai ho!** Aapka saara backlog clear ho chuka hai! 🚀")
+        await message_obj.reply_text("🎉 Badhai ho! Aapka saara backlog clear ho chuka hai! 🚀")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -159,6 +160,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if data == "menu_suggest":
         await suggest_cmd(query, context)
+    elif data == "menu_add":
+        await start_add(context) 
     elif data == "menu_status":
         await status_action(query)
     elif data.startswith("done_"):
@@ -168,7 +171,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute('UPDATE lectures SET completed = 1 WHERE id = ?', (lecture_id,))
         conn.commit()
         conn.close()
-        await query.edit_message_text(f"🎉 **Shabash!** Lecture ID {lecture_id} complete ho gaya hai! Agla lecture dekhne ke liye `/suggest` ya main menu use kijiye.")
+        await query.edit_message_text(f"🎉 Shabash! Lecture ID {lecture_id} complete ho gaya hai! Agla lecture dekhne ke liye /suggest ya main menu use kijiye.")
 
 async def status_action(query):
     conn = sqlite3.connect('lecture_backlog.db')
@@ -181,7 +184,7 @@ async def status_action(query):
         conn.close()
         return
 
-    report = "📊 **Aapka Subject-wise Progress:**\n\n"
+    report = "📊 Aapka Subject-wise Progress:\n\n"
     for sub in subjects:
         subject_name = sub[0]
         cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ?', (subject_name,))
@@ -205,7 +208,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
         return
 
-    report = "📊 **Aapka Subject-wise Progress:**\n\n"
+    report = "📊 Aapka Subject-wise Progress:\n\n"
     for sub in subjects:
         subject_name = sub[0]
         cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ?', (subject_name,))
@@ -213,7 +216,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ? AND completed = 1', (subject_name,))
         completed = cursor.fetchone()[0]
         percent = int((completed / total) * 100) if total > 0 else 0
-        report += f"📁 **{subject_name}**\n   ✨ Ho gaye: {completed}/{total} ({percent}%)\n   ⏳ Baki hain: {total - completed}\n\n"
+        report += f"📁 {subject_name}\n   ✨ Ho gaye: {completed}/{total} ({percent}%)\n   ⏳ Baki hain: {total - completed}\n\n"
     
     conn.close()
     await update.message.reply_text(report, parse_mode='Markdown')
