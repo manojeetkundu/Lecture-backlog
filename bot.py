@@ -101,8 +101,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("➕ Naya Lecture Jodein", callback_data="menu_add")],
-        [InlineKeyboardButton("📊 Backlog Status Dekhein", callback_data="menu_suggest")],
-        [InlineKeyboardButton("🎯 Agla Lecture Dekhein", callback_data="menu_status")]
+        [InlineKeyboardButton("🎯 Agla Lecture Dekhein", callback_data="menu_suggest")],
+        [InlineKeyboardButton("📊 Backlog Status Dekhein", callback_data="menu_status")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
