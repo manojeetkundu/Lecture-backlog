@@ -49,8 +49,8 @@ GET_VIDEO, GET_SUBJECT = range(2)
 
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🎥 Naya lecture add karne ke liye apni **video file bhejiye**, aur video ke **caption mein lecture ka title** likh dijiye!\n\n"
-        "💡 Radd karne ke liye /cancel bhejiye"
+        "🎥 Naya lecture add karne ke liye apni video file bhejiye, aur video ke caption mein lecture ka title likh dijiye!\n\n"
+        "💡 Cancel karne ke liye /cancel bhejiye"
     )
     return GET_VIDEO
 
@@ -86,7 +86,7 @@ async def get_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     
     await update.message.reply_text(
-        f"✅ Lecture safalpurvak save ho gaya!\n\n"
+        f"✅ Lecture successfully save ho gaya!\n\n"
         f"📌 Title: {title}\n"
         f"📖 Subject: {subject}"
     )
