@@ -86,7 +86,7 @@ async def get_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     
     await update.message.reply_text(
-        f"✅ Lecture safalpurvak save ho gaya!\n\n"
+        f"✅ Lecture successfully save ho gaya!\n\n"
         f"📌 Title: {title}\n"
         f"📖 Subject: {subject}"
     )
@@ -107,7 +107,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "👋 Namaste! Main aapka personal Lecture Backlog Bot hoon.\n\n"
+        "👋 Namaste! Main aapka Padhai Partner hoon.\n\n"
         "Apne lectures ko track karne ke liye niche diye gaye buttons ka use kijiye. ✨",
         reply_markup=reply_markup
     )
