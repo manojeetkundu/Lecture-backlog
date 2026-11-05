@@ -159,7 +159,7 @@ async def suggest_cmd(update_or_query, context):
     else:
         await context.bot.send_message(
             chat_id=chat_id, 
-            text="🎉 Badhai ho! Aapka saara backlog clear ho chuka hai! 🚀"
+            text="📂 Abhi tak koi lectures add nahi kiye gaye hain!"
         )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -221,7 +221,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     subjects = cursor.fetchall()
     
     if not subjects:
-        await update.message.reply_text("📂 Abhi tak koi lectures add nahi kiye gaye hain!")
+        await update.message.reply_text("🎉 Badhai ho! Aapka saara backlog clear ho chuka hai! 🚀")
         conn.close()
         return
 
