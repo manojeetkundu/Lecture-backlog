@@ -18,7 +18,7 @@ app_web = Flask(__name__)
 
 @app_web.route('/')
 def home():
-    return "🤖 Lecture Backlog Bot is alive and running!"
+    return "Lecture Backlog Bot is alive and running!"
 
 def run_web():
     port = int(os.getenv("PORT", 10000))
@@ -49,18 +49,18 @@ TITLE, VIDEO_FILE, SUBJECT = range(3)
 
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📚 Naya lecture add karne ke liye sabse pehle lecture ka **Title** bhejiye:\n"
-        "*(Jaise: Chapter 1 Introduction)*\n\n"
-        "💡 *Radd karne ke liye `/cancel` bhejiye*"
+        "📚 Naya lecture add karne ke liye sabse pehle lecture ka Title bhejiye:\n"
+        "(Jaise: Chapter 1 Introduction)\n\n"
+        "💡 Radd karne ke liye /cancel bhejiye"
     )
     return TITLE
 
 async def get_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['title'] = update.message.text
     await update.message.reply_text(
-        "🎥 **Video File**\n\n"
+        "🎥 Video File\n\n"
         "Ab is lecture ki video file (video message) bhejiye:\n"
-        "*(Agar video nahi hai toh 'none' likh kar bhej sakte hain)*"
+        "(Agar video nahi hai toh 'none' likh kar bhej sakte hain)"
     )
     return VIDEO_FILE
 
@@ -71,9 +71,9 @@ async def get_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['file_id'] = "none"
         
     await update.message.reply_text(
-        "📂 **Subject**\n\n"
+        "📂 Subject\n\n"
         "Ab bataiye ki yeh lecture kis Subject ka hai?\n"
-        "*(Jaise: Maths, Physics)*"
+        "(Jaise: Maths, Physics)"
     )
     return SUBJECT
 
@@ -92,7 +92,7 @@ async def get_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     
     await update.message.reply_text(
-        f"✅ **Lecture safalpurvak save ho gaya!**\n\n"
+        f"✅ Lecture safalpurvak save ho gaya!\n\n"
         f"📌 Title: {title}\n"
         f"📖 Subject: {subject}"
     )
@@ -113,7 +113,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "👋 **Namaste!** Main aapka personal **Lecture Backlog Bot** hoon.\n\n"
+        "👋 Namaste! Main aapka personal Lecture Backlog Bot hoon.\n\n"
         "Apne lectures ko track karne ke liye niche diye gaye buttons ka use kijiye. ✨",
         reply_markup=reply_markup
     )
@@ -143,7 +143,7 @@ async def suggest_cmd(update_or_query, context):
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         msg = (
-            f"🎯 **Aapke liye agla lecture:**\n\n"
+            f"🎯 Aapke liye agla lecture:\n\n"
             f"🆔 ID: {lecture_id}\n"
             f"📚 Title: {title}\n"
             f"📖 Subject: {subject}"
@@ -165,7 +165,7 @@ async def suggest_cmd(update_or_query, context):
     else:
         await context.bot.send_message(
             chat_id=chat_id, 
-            text="🎉 **Badhai ho!** Aapka saara backlog clear ho chuka hai! 🚀"
+            text="🎉 Badhai ho! Aapka saara backlog clear ho chuka hai! 🚀"
         )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -174,7 +174,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     data = query.data
     
-    if data == "menu_suggest":
+    if data == "menu_add":
+        await query.message.reply_text("💡 Naya lecture add karne ke liye /add command type kijiye.")
+    elif data == "menu_suggest":
         await suggest_cmd(query, context)
     elif data == "menu_status":
         await status_action(query)
@@ -185,7 +187,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute('UPDATE lectures SET completed = 1 WHERE id = ?', (lecture_id,))
         conn.commit()
         conn.close()
-        await query.edit_message_text(f"🎉 **Shabash!** Lecture ID {lecture_id} complete ho gaya hai! Agla lecture dekhne ke liye `/suggest` use kijiye.")
+        await query.edit_message_text(f"🎉 Shabash! Lecture ID {lecture_id} complete ho gaya hai! Agla lecture dekhne ke liye /suggest use kijiye.")
 
 async def status_action(query):
     conn = sqlite3.connect('lecture_backlog.db')
@@ -198,7 +200,7 @@ async def status_action(query):
         conn.close()
         return
 
-    report = "📊 **Aapka Subject-wise Progress:**\n\n"
+    report = "📊 Aapka Subject-wise Progress:\n\n"
     for sub in subjects:
         subject_name = sub[0]
         cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ?', (subject_name,))
@@ -206,7 +208,7 @@ async def status_action(query):
         cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ? AND completed = 1', (subject_name,))
         completed = cursor.fetchone()[0]
         percent = int((completed / total) * 100) if total > 0 else 0
-        report += f"📁 **{subject_name}**\n   ✨ Ho gaye: {completed}/{total} ({percent}%)\n   ⏳ Baki hain: {total - completed}\n\n"
+        report += f"📁 Subject: {subject_name}\n   ✨ Ho gaye: {completed}/{total} ({percent}%)\n   ⏳ Baki hain: {total - completed}\n\n"
     
     conn.close()
     await query.message.reply_text(report)
@@ -222,7 +224,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
         return
 
-    report = "📊 **Aapka Subject-wise Progress:**\n\n"
+    report = "📊 Aapka Subject-wise Progress:\n\n"
     for sub in subjects:
         subject_name = sub[0]
         cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ?', (subject_name,))
@@ -230,7 +232,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ? AND completed = 1', (subject_name,))
         completed = cursor.fetchone()[0]
         percent = int((completed / total) * 100) if total > 0 else 0
-        report += f"📁 **{subject_name}**\n   ✨ Ho gaye: {completed}/{total} ({percent}%)\n   ⏳ Baki hain: {total - completed}\n\n"
+        report += f"📁 Subject: {subject_name}\n   ✨ Ho gaye: {completed}/{total} ({percent}%)\n   ⏳ Baki hain: {total - completed}\n\n"
     
     conn.close()
     await update.message.reply_text(report)
@@ -264,7 +266,7 @@ def main():
     app.add_handler(CommandHandler("status", status_cmd))
     app.add_handler(CallbackQueryHandler(button_handler))
     
-    print("🤖 Bot aur Server successfully start ho rahe ہیں...")
+    print("🤖 Bot aur Server successfully start ho rahe hain...")
     app.run_polling()
 
 if __name__ == '__main__':
