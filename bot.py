@@ -44,7 +44,7 @@ def init_db():
 init_db()
 
 
-# --- 3. Conversation States (Sirf 2 steps: Video+Caption aur Subject) ---
+# --- 3. Conversation States ---
 GET_VIDEO, GET_SUBJECT = range(2)
 
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -57,13 +57,11 @@ async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.video:
         context.user_data['file_id'] = update.message.video.file_id
-        # Video ke caption ko hi title bana lenge
         if update.message.caption:
             context.user_data['title'] = update.message.caption
         else:
             context.user_data['title'] = "Untitled Lecture"
     else:
-        # Agar user ne video ki jagah text bhej diya ho
         context.user_data['file_id'] = "none"
         context.user_data['title'] = update.message.text
         
@@ -184,7 +182,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
         conn.close()
         
-        # Check karenge ki message video hai ya text, uske hisaab se edit karenge
         try:
             if query.message.video:
                 await query.edit_message_caption(caption=f"🎉 Shabash! Lecture ID {lecture_id} complete ho gaya hai! ✅")
