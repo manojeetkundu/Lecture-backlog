@@ -329,7 +329,7 @@ def main():
         entry_points=[CommandHandler('add', start_add)],
         states={
             GET_BULK_SUBJECT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_bulk_subject)],
-            GET_BULK_FILES: [MessageHandler((filters.VIDEO | filters.DOCUMENT | filters.TEXT) & ~filters.COMMAND, get_bulk_files)],
+            GET_BULK_FILES: [MessageHandler((filters.VIDEO | filters.Document.ALL | filters.TEXT) & ~filters.COMMAND, get_bulk_files)],
         },
         fallbacks=[CommandHandler('cancel', cancel), CommandHandler('done', get_bulk_files)],
     )
