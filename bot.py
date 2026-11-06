@@ -55,7 +55,7 @@ GET_BULK_SUBJECT, GET_BULK_FILES = range(2)
 
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Pehle bataiye, aap kis Subject mein lectures add karna chahte hain?\n"
+        "Pehle bataiye, aap kis Subject📚 mein lectures add karna chahte hain?\n"
         "(Jaise: Maths, Physics)\n\n"
         "Radd karne ke liye /cancel bhejiye."
     )
@@ -65,10 +65,10 @@ async def get_bulk_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     subject = update.message.text.strip().capitalize()
     context.user_data['bulk_subject'] = subject
     await update.message.reply_text(
-        f"Subject **{subject}** set ho gaya hai!\n\n"
+        f"Subject {subject} set ho gaya hai!\n\n"
         "Ab aap ek sath ya ek-ek karke jitni chahein video files bhej sakte hain. "
         "Video ke caption mein lecture ka title likh sakte hain.\n\n"
-        "Saari files bhejne ke baad **/done** type karein.",
+        "Saari files bhejne ke baad /done type karein.",
         parse_mode="Markdown"
     )
     return GET_BULK_FILES
@@ -109,7 +109,7 @@ async def get_bulk_files(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return GET_BULK_FILES
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Process cancel kar di gayi hai.")
+    await update.message.reply_text("❌ Process cancel kar di gayi hai.")
     return ConversationHandler.END
 
 
@@ -117,14 +117,14 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Naya Lecture Jodein", callback_data="menu_add")],
-        [InlineKeyboardButton("Agla Lecture Dekhein", callback_data="menu_suggest")],
-        [InlineKeyboardButton("Backlog Status Dekhein", callback_data="menu_status")]
+        [InlineKeyboardButton("🎯 Agla Lecture Dekhein", callback_data="menu_suggest")],
+        [InlineKeyboardButton("📊 Backlog Status Dekhein", callback_data="menu_status")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "Namaste! Main aapka personal Padhai Partner hoon.\n\n"
-        "Apne lectures ko track karne ke liye niche diye gaye buttons ka use kijiye.",
+        "👋 Namaste! Main aapka personal Padhai Partner hoon.\n\n"
+        "Apne lectures ko track karne ke liye niche diye gaye buttons ka use kijiye.✨",
         reply_markup=reply_markup
     )
 
@@ -175,14 +175,14 @@ async def send_lecture_message(query, context, lecture):
         lecture_id, title, subject, file_id = lecture
         
         keyboard = [
-            [InlineKeyboardButton("Ho Gaya (Done)", callback_data=f"done_{lecture_id}")]
+            [InlineKeyboardButton("Ho Gaya (Done)🥳", callback_data=f"done_{lecture_id}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         msg = (
-            f"Aapke liye agla lecture:\n\n"
-            f"Subject: {subject}\n"
-            f"ID: {lecture_id}\n"
+            f"Aapke liye agla lecture:👇\n\n"
+            f"Subject 📚: {subject}\n"
+            f"ID 🆔: {lecture_id}\n"
             f"Title: {title}"
         )
         
@@ -256,9 +256,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if query.message.video:
                 await query.edit_message_caption(caption=f"Shabash! Lecture ID {lecture_id} complete ho gaya hai!")
             else:
-                await query.edit_message_text(text=f"Shabash! Lecture ID {lecture_id} complete ho gaya hai!")
+                await query.edit_message_text(text=f"Shabash!🏆 Lecture ID {lecture_id} complete ho gaya hai!")
         except Exception:
-            await query.message.reply_text(f"Shabash! Lecture ID {lecture_id} complete ho gaya hai!")
+            await query.message.reply_text(f"Shabash!🏆 Lecture ID {lecture_id} complete ho gaya hai!")
 
 async def status_action(query):
     conn = get_db_connection()
