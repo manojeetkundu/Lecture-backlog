@@ -1,7 +1,7 @@
 import os
 import threading
 from flask import Flask
-import psycopg2
+import sqlite3
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -13,7 +13,7 @@ from telegram.ext import (
     filters
 )
 
-# --- 1. Dummy Web Server ---
+# --- 1. Dummy Web Server (Render ke liye) ---
 app_web = Flask(__name__)
 
 @app_web.route('/')
@@ -25,18 +25,18 @@ def run_web():
     app_web.run(host="0.0.0.0", port=port)
 
 
-# --- 2. Database Connection (Supabase PostgreSQL) ---
+# --- 2. Database Connection (Local SQLite) ---
+DB_NAME = "lecture_backlog.db"
+
 def get_db_connection():
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    return conn
+    return sqlite3.connect(DB_NAME)
 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS lectures (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             subject TEXT NOT NULL,
             file_id TEXT,
@@ -50,54 +50,63 @@ def init_db():
 init_db()
 
 
-# --- 3. Conversation States (Add Lecture) ---
-GET_VIDEO, GET_SUBJECT = range(2)
+# --- 3. Bulk Upload Conversation States ---
+GET_BULK_SUBJECT, GET_BULK_FILES = range(2)
 
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Naya lecture add karne ke liye apni video file bhejiye, aur video ke caption mein lecture ka title likh dijiye!\n\n"
-        "Radd karne ke liye /cancel bhejiye"
+        "Pehle bataiye, aap kis Subject mein lectures add karna chahte hain?\n"
+        "(Jaise: Maths, Physics)\n\n"
+        "Radd karne ke liye /cancel bhejiye."
     )
-    return GET_VIDEO
+    return GET_BULK_SUBJECT
 
-async def get_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.video:
-        context.user_data['file_id'] = update.message.video.file_id
-        if update.message.caption:
-            context.user_data['title'] = update.message.caption
-        else:
-            context.user_data['title'] = "Untitled Lecture"
-    else:
-        context.user_data['file_id'] = "none"
-        context.user_data['title'] = update.message.text
-        
-    await update.message.reply_text(
-        "Ab bataiye ki yeh lecture kis Subject ka hai?\n"
-        "(Jaise: Maths, Physics)"
-    )
-    return GET_SUBJECT
-
-async def get_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_bulk_subject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     subject = update.message.text.strip().capitalize()
-    title = context.user_data['title']
-    file_id = context.user_data['file_id']
+    context.user_data['bulk_subject'] = subject
+    await update.message.reply_text(
+        f"Subject **{subject}** set ho gaya hai!\n\n"
+        "Ab aap ek sath ya ek-ek karke jitni chahein video files bhej sakte hain. "
+        "Video ke caption mein lecture ka title likh sakte hain.\n\n"
+        "Saari files bhejne ke baad **/done** type karein.",
+        parse_mode="Markdown"
+    )
+    return GET_BULK_FILES
+
+async def get_bulk_files(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    subject = context.user_data.get('bulk_subject', 'General')
     
+    # Agar user ne /done likha toh process khatam
+    if update.message.text and update.message.text.lower() == '/done':
+        await update.message.reply_text(f"Aapke **{subject}** ke saare lectures safalpurvak save ho gaye hain! 🎉", parse_mode="Markdown")
+        return ConversationHandler.END
+
+    file_id = "none"
+    title = "Untitled Lecture"
+
+    if update.message.video:
+        file_id = update.message.video.file_id
+        if update.message.caption:
+            title = update.message.caption
+    elif update.message.document:
+        file_id = update.message.document.file_id
+        if update.message.caption:
+            title = update.message.caption
+    elif update.message.text:
+        title = update.message.text
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO lectures (title, subject, file_id, completed)
-        VALUES (%s, %s, %s, 0)
+        VALUES (?, ?, ?, 0)
     ''', (title, subject, file_id))
     conn.commit()
     cursor.close()
     conn.close()
-    
-    await update.message.reply_text(
-        f"Lecture safalpurvak save ho gaya!\n\n"
-        f"Title: {title}\n"
-        f"Subject: {subject}"
-    )
-    return ConversationHandler.END
+
+    await update.message.reply_text(f"✅ Save ho gaya: '{title}' ({subject}). Aur files bhejiye ya khatam karne ke liye /done likhiye.")
+    return GET_BULK_FILES
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Process cancel kar di gayi hai.")
@@ -212,7 +221,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute('''
             SELECT id, title, subject, file_id 
             FROM lectures 
-            WHERE completed = 0 AND subject = %s 
+            WHERE completed = 0 AND subject = ? 
             ORDER BY id ASC 
             LIMIT 1
         ''', (subject_name,))
@@ -238,7 +247,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lecture_id = int(data.split("_")[1])
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('UPDATE lectures SET completed = 1 WHERE id = %s', (lecture_id,))
+        cursor.execute('UPDATE lectures SET completed = 1 WHERE id = ?', (lecture_id,))
         conn.commit()
         cursor.close()
         conn.close()
@@ -266,9 +275,9 @@ async def status_action(query):
     report = "Aapka Subject-wise Progress:\n\n"
     for sub in subjects:
         subject_name = sub[0]
-        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = %s', (subject_name,))
+        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ?', (subject_name,))
         total = cursor.fetchone()[0]
-        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = %s AND completed = 1', (subject_name,))
+        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ? AND completed = 1', (subject_name,))
         completed = cursor.fetchone()[0]
         percent = int((completed / total) * 100) if total > 0 else 0
         report += f"Subject: {subject_name}\n   Ho gaye: {completed}/{total} ({percent}%)\n   Baki hain: {total - completed}\n\n"
@@ -292,9 +301,9 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     report = "Aapka Subject-wise Progress:\n\n"
     for sub in subjects:
         subject_name = sub[0]
-        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = %s', (subject_name,))
+        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ?', (subject_name,))
         total = cursor.fetchone()[0]
-        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = %s AND completed = 1', (subject_name,))
+        cursor.execute('SELECT COUNT(*) FROM lectures WHERE subject = ? AND completed = 1', (subject_name,))
         completed = cursor.fetchone()[0]
         percent = int((completed / total) * 100) if total > 0 else 0
         report += f"Subject: {subject_name}\n   Ho gaye: {completed}/{total} ({percent}%)\n   Baki hain: {total - completed}\n\n"
@@ -319,10 +328,10 @@ def main():
     add_handler = ConversationHandler(
         entry_points=[CommandHandler('add', start_add)],
         states={
-            GET_VIDEO: [MessageHandler(filters.VIDEO | filters.TEXT & ~filters.COMMAND, get_video)],
-            GET_SUBJECT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_subject)],
+            GET_BULK_SUBJECT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_bulk_subject)],
+            GET_BULK_FILES: [MessageHandler((filters.VIDEO | filters.DOCUMENT | filters.TEXT) & ~filters.COMMAND, get_bulk_files)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[CommandHandler('cancel', cancel), CommandHandler('done', get_bulk_files)],
     )
     
     app.add_handler(CommandHandler("start", start))
